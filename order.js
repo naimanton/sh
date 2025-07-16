@@ -1,6 +1,109 @@
 const qw = console.log;
-const products_string = window['generated_products_string'];
+class SecureEncryption {
+    constructor() {
+        this.algorithm = 'AES-GCM';
+        this.keyLength = 256;
+        this.ivLength = 12; // 96 бит для GCM
+        this.saltLength = 16; // 128 бит
+        this.iterations = 100000; // PBKDF2 итерации
+    }
 
+    // Генерация криптографического ключа из пароля
+    async deriveKey(password, salt) {
+        const encoder = new TextEncoder();
+        const keyMaterial = await crypto.subtle.importKey(
+            'raw',
+            encoder.encode(password),
+            'PBKDF2',
+            false,
+            ['deriveKey']
+        );
+
+        return await crypto.subtle.deriveKey(
+            {
+                name: 'PBKDF2',
+                salt: salt,
+                iterations: this.iterations,
+                hash: 'SHA-256'
+            },
+            keyMaterial,
+            {
+                name: this.algorithm,
+                length: this.keyLength
+            },
+            false,
+            ['encrypt', 'decrypt']
+        );
+    }
+
+    // Шифрование
+    async encrypt(plaintext, password) {
+        try {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(plaintext);
+            
+            // Генерация случайной соли и IV
+            const salt = crypto.getRandomValues(new Uint8Array(this.saltLength));
+            const iv = crypto.getRandomValues(new Uint8Array(this.ivLength));
+            
+            // Создание ключа
+            const key = await this.deriveKey(password, salt);
+            
+            // Шифрование
+            const encrypted = await crypto.subtle.encrypt(
+                {
+                    name: this.algorithm,
+                    iv: iv
+                },
+                key,
+                data
+            );
+            
+            // Объединение соли, IV и зашифрованных данных
+            const result = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+            result.set(salt, 0);
+            result.set(iv, salt.length);
+            result.set(new Uint8Array(encrypted), salt.length + iv.length);
+            
+            // Кодирование в Base64
+            return btoa(String.fromCharCode(...result));
+        } catch (error) {
+            throw new Error('Ошибка шифрования: ' + error.message);
+        }
+    }
+
+    // Расшифровка
+    async decrypt(encryptedData, password) {
+        try {
+            // Декодирование из Base64
+            const data = new Uint8Array(atob(encryptedData).split('').map(c => c.charCodeAt(0)));
+            
+            // Извлечение соли, IV и зашифрованных данных
+            const salt = data.slice(0, this.saltLength);
+            const iv = data.slice(this.saltLength, this.saltLength + this.ivLength);
+            const encrypted = data.slice(this.saltLength + this.ivLength);
+            
+            // Создание ключа
+            const key = await this.deriveKey(password, salt);
+            
+            // Расшифровка
+            const decrypted = await crypto.subtle.decrypt(
+                {
+                    name: this.algorithm,
+                    iv: iv
+                },
+                key,
+                encrypted
+            );
+            
+            // Декодирование в текст
+            const decoder = new TextDecoder();
+            return decoder.decode(decrypted);
+        } catch (error) {
+            throw new Error('Ошибка расшифровки: неверный пароль или повреждённые данные');
+        }
+    }
+}
 class ClientAPI {
   construct(products) {
     this.elements = {
@@ -988,80 +1091,113 @@ function attempt(callback, ...args) {
 function fi(n, m=2) {
   return +(n.toFixed(m));
 }
-const products = ClientAPI._convertTableStringToObject2(products_string);
-delete products[""];
-var g_sorted_codes;
-var offGSorting = localStorage.getItem('order2_offGSorting');
-if (offGSorting === null || +offGSorting !== 1) {
-  g_sorted_codes = ClientAPI.sortCodesByCoins(products);
+async function getCatalog(password) {
+  const encryptedPantryKey = 'eXh5eSVB0vfv/OZCygAxVWMrjMrnl8Cqw27TizrAqTu1adDlbhicOtZoIdTDMiI+nW969ekQvTE2rkyqeryQdvNEQWy0epGJca8PSb3UAM4=';
+  const pantryKey = await cipher.decrypt(encryptedPantryKey, password);
+  var myHeaders = new Headers();
+  myHeaders.append("Content-Type", "application/json");
+  var raw = "";
+  var requestOptions = {
+    method: 'GET',
+    headers: myHeaders,
+    body: raw,
+    redirect: 'follow'
+  };
+  var shBasket;
+  await fetch(`https://getpantry.cloud/apiv1/pantry/${pantryKey}/basket/sh`, requestOptions)
+    .then(response => response.json())
+    .then(result => shBasket = result)
+    .catch(error => console.log('error', error));
+  return shBasket; 
 }
-else {
-  g_sorted_codes = ClientAPI.productsToCodes(products); 
-}
-var orderInputEventHandlingMethod;
-var altOrderInputEventHandlingMethod = localStorage.getItem('altOrderInputEventHandlingMethod');
-if (altOrderInputEventHandlingMethod === null || +altOrderInputEventHandlingMethod !== 1) {
-  orderInputEventHandlingMethod = 'handleOrderInputEvent';
-}
-else {
-  orderInputEventHandlingMethod = 'handleOrderInputEventAlt';
-}
-var commasInsteadOfDots = localStorage.getItem('commasInsteadOfDots');
-let sum = {
-  coins: 0,
-  price: 0,
-  amount: 0
-};
+const g = {};
+let cipher = new SecureEncryption;
+var products, g_sorted_codes, offGSorting, orderInputEventHandlingMethod, altOrderInputEventHandlingMethod,
+commasInsteadOfDots, sum, amounts, isSumLimited, limitVal, allInputs, sumCellHandling, sumCellHandler,
+localFollowings, api, products_string;
 const notEmptyTrColor = '#c7ffaf'; 
 const lowAmountColor = '#fc7c7c';
 const zeroAmountTextColor = '#adadad';
 let discount = 10;
-let amounts = ClientAPI.initAmountsObject(products);
 let search_url = 'https://kz.siberianhealth.com/ru/shop/search/?searchString=';
-var isSumLimited;
-var limitVal;
-if (localStorage.getItem('order2_isSumLimited') == 1) {
-    isSumLimited = true;
-    limitVal = localStorage.getItem('order2_limitVal');
+function unpantrify(shBasket) {
+  shBasket.products.replaceAll('!@#', '\n');
+  shBasket.products.replaceAll('$%^', '"');
+  return shBasket
 }
-else {
-    isSumLimited = false;
-    limitVal = 'не указан';
-}
-const allInputs = document.querySelectorAll("input");
-var sumCellHandling = {
-    simple(v) {
-        api.elements.price_sum.innerText = fi(v);
-        if (!isSumLimited) return;
-        if (limitVal - v < 0) {
-            api.elements.price_sum.style.backgroundColor = lowAmountColor;
-        }
-        else {
-            api.elements.price_sum.style.backgroundColor = '#ffffcc';
-        }
-    },
-    minus(v) {
-        api.elements.price_sum.innerText = 'Л: ' + fi(limitVal - v);
-        if (limitVal - v < 0) {
-            api.elements.price_sum.style.backgroundColor = lowAmountColor;
-        }
-        else {
-            api.elements.price_sum.style.backgroundColor = '#ffffcc';
-        }  
-    },
-};
-var sumCellHandler;
-if (localStorage.getItem('order2_sumCellHandlingMinusMode') == 1) {
-    sumCellHandler = sumCellHandling.minus;
-}
-else {
-    sumCellHandler = sumCellHandling.simple;
-}
-var localFollowings = localStorage.getItem('followings2');
-if (localFollowings === null) {
-	localFollowings = "{}";
-	localStorage.setItem('followings2', localFollowings);
-}
-localFollowings = JSON.parse(localFollowings);
-let api = new ClientAPI()
-api = api.construct(products);
+getCatalog(prompt('pass')).then(shBasket => {
+  products_string = unpantrify(shBasket).products
+  products = ClientAPI._convertTableStringToObject2(products_string);
+  delete products[""];
+  g_sorted_codes;
+  offGSorting = localStorage.getItem('order2_offGSorting');
+  if (offGSorting === null || +offGSorting !== 1) {
+    g_sorted_codes = ClientAPI.sortCodesByCoins(products);
+  }
+  else {
+    g_sorted_codes = ClientAPI.productsToCodes(products); 
+  }
+  orderInputEventHandlingMethod;
+  altOrderInputEventHandlingMethod = localStorage.getItem('altOrderInputEventHandlingMethod');
+  if (altOrderInputEventHandlingMethod === null || +altOrderInputEventHandlingMethod !== 1) {
+    orderInputEventHandlingMethod = 'handleOrderInputEvent';
+  }
+  else {
+    orderInputEventHandlingMethod = 'handleOrderInputEventAlt';
+  }
+  commasInsteadOfDots = localStorage.getItem('commasInsteadOfDots');
+  sum = {
+    coins: 0,
+    price: 0,
+    amount: 0
+  };
+  
+  amounts = ClientAPI.initAmountsObject(products);
+  isSumLimited;
+  limitVal;
+  if (localStorage.getItem('order2_isSumLimited') == 1) {
+      isSumLimited = true;
+      limitVal = localStorage.getItem('order2_limitVal');
+  }
+  else {
+      isSumLimited = false;
+      limitVal = 'не указан';
+  }
+  allInputs = document.querySelectorAll("input");
+  sumCellHandling = {
+      simple(v) {
+          api.elements.price_sum.innerText = fi(v);
+          if (!isSumLimited) return;
+          if (limitVal - v < 0) {
+              api.elements.price_sum.style.backgroundColor = lowAmountColor;
+          }
+          else {
+              api.elements.price_sum.style.backgroundColor = '#ffffcc';
+          }
+      },
+      minus(v) {
+          api.elements.price_sum.innerText = 'Л: ' + fi(limitVal - v);
+          if (limitVal - v < 0) {
+              api.elements.price_sum.style.backgroundColor = lowAmountColor;
+          }
+          else {
+              api.elements.price_sum.style.backgroundColor = '#ffffcc';
+          }  
+      },
+  };
+  sumCellHandler;
+  if (localStorage.getItem('order2_sumCellHandlingMinusMode') == 1) {
+      sumCellHandler = sumCellHandling.minus;
+  }
+  else {
+      sumCellHandler = sumCellHandling.simple;
+  }
+  localFollowings = localStorage.getItem('followings2');
+  if (localFollowings === null) {
+  	localFollowings = "{}";
+  	localStorage.setItem('followings2', localFollowings);
+  }
+  localFollowings = JSON.parse(localFollowings);
+  api = new ClientAPI()
+  api = api.construct(products);
+})
