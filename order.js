@@ -1120,8 +1120,8 @@ const zeroAmountTextColor = '#adadad';
 let discount = 10;
 let search_url = 'https://kz.siberianhealth.com/ru/shop/search/?searchString=';
 function unpantrify(shBasket) {
-  shBasket.products.replaceAll('!@#', '\n');
-  shBasket.products.replaceAll('$%^', '"');
+  shBasket.products = shBasket.products.replaceAll('!@#', '\n');
+  shBasket.products = shBasket.products.replaceAll('$%^', '"');
   return shBasket
 }
 getCatalog(prompt('pass')).then(shBasket => {
