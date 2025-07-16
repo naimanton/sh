@@ -1092,8 +1092,7 @@ function fi(n, m=2) {
   return +(n.toFixed(m));
 }
 async function getCatalog(password) {
-  const encryptedPantryKey = 'eXh5eSVB0vfv/OZCygAxVWMrjMrnl8Cqw27TizrAqTu1adDlbhicOtZoIdTDMiI+nW969ekQvTE2rkyqeryQdvNEQWy0epGJca8PSb3UAM4=';
-  const pantryKey = await cipher.decrypt(encryptedPantryKey, password);
+  
   var myHeaders = new Headers();
   myHeaders.append("Content-Type", "application/json");
   var raw = "";
@@ -1109,22 +1108,29 @@ async function getCatalog(password) {
     .catch(error => console.log('error', error));
   return shBasket; 
 }
-const g = {};
-let cipher = new SecureEncryption;
-var products, g_sorted_codes, offGSorting, orderInputEventHandlingMethod, altOrderInputEventHandlingMethod,
-commasInsteadOfDots, sum, amounts, isSumLimited, limitVal, allInputs, sumCellHandling, sumCellHandler,
-localFollowings, api, products_string;
-const notEmptyTrColor = '#c7ffaf'; 
-const lowAmountColor = '#fc7c7c';
-const zeroAmountTextColor = '#adadad';
-let discount = 10;
-let search_url = 'https://kz.siberianhealth.com/ru/shop/search/?searchString=';
 function unpantrify(shBasket) {
   shBasket.products = shBasket.products.replaceAll('!@#', '\n');
   shBasket.products = shBasket.products.replaceAll('$%^', '"');
   return shBasket
 }
-getCatalog(prompt('pass')).then(shBasket => {
+const g = {};
+let cipher = new SecureEncryption;
+var products, g_sorted_codes, offGSorting, orderInputEventHandlingMethod, altOrderInputEventHandlingMethod,
+commasInsteadOfDots, sum, amounts, isSumLimited, limitVal, allInputs, sumCellHandling, sumCellHandler,
+localFollowings, api, products_string, pantryKey;
+const encryptedPantryKey = 'cGO7MegatLOr30spw2rz4XO2OgEkOQqwRqR8ae/+TXWhlD83HUP5sRB4S5j4gy5TQw3v8Riet41NCo2zwKZxSLDAyYyUqMkob52rZRoTFMw=';
+const notEmptyTrColor = '#c7ffaf'; 
+const lowAmountColor = '#fc7c7c';
+const zeroAmountTextColor = '#adadad';
+let discount = 10;
+let search_url = 'https://kz.siberianhealth.com/ru/shop/search/?searchString=';
+let password = localStorage.getItem('sec')
+if (!password) {
+  password = prompt('Пароль');
+  pantryKey = await cipher.decrypt(encryptedPantryKey, password);
+  sessionStorage.setItem('sec', password);
+}
+getCatalog(password).then(shBasket => {
   products_string = unpantrify(shBasket).products
   products = ClientAPI._convertTableStringToObject2(products_string);
   delete products[""];
