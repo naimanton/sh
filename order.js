@@ -1100,7 +1100,6 @@ async function getCatalog(password) {
   var requestOptions = {
     method: 'GET',
     headers: myHeaders,
-    body: raw,
     redirect: 'follow'
   };
   var shBasket;
