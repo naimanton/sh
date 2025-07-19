@@ -1113,8 +1113,8 @@ function unpantrify(shBasket) {
   shBasket.products = shBasket.products.replaceAll('$%^', '"');
   return shBasket
 }
-const g = {};
-let cipher = new SecureEncryption;
+
+const cipher = new SecureEncryption;
 var products, g_sorted_codes, offGSorting, orderInputEventHandlingMethod, altOrderInputEventHandlingMethod,
 commasInsteadOfDots, sum, amounts, isSumLimited, limitVal, allInputs, sumCellHandling, sumCellHandler,
 localFollowings, api, products_string, pantryKey;
@@ -1128,7 +1128,7 @@ let password = localStorage.getItem('sec')
 if (!password) {
   password = prompt('Пароль');
   pantryKey = await cipher.decrypt(encryptedPantryKey, password);
-  sessionStorage.setItem('sec', password);
+  localStorage.setItem('sec', password);
 }
 getCatalog(password).then(shBasket => {
   products_string = unpantrify(shBasket).products
