@@ -391,6 +391,7 @@ class ClientAPI {
           this.elements.discount_input.value = discount;
           this.removeProductTrsFromOrderTable.call(this);
           this.placeCatalogInOrderTable.call(this, discount, this.mRemains);
+          this.placeLastProductsUpdatingDay.call(this)
           sum.price = this.recalculateSum.call(this).price;
           localStorage.setItem('sum2', JSON.stringify(sum));
           localStorage.setItem('discount', discount);
@@ -412,7 +413,7 @@ class ClientAPI {
     }  
     catch(er) {
       document.body.style.display = "block";
-      disableAllInputs('port', 'localClear');
+      // disableAllInputs('port', 'localClear');
       alert('Непредвиденная ошибка.');
       alert(er.stack);
       console.log(er);
@@ -949,14 +950,13 @@ class ClientAPI {
     }
     localStorage.setItem('order2', JSON.stringify(amounts));
   }
-  // placeLastProductsUpdatingDay(lpud) {
-  //   this.elements.info_td.insertAdjacentHTML(
-  //     'beforeend', 
-  //     "M-остатки обновлялись на устройстве: " + (localStorage.getItem('mRemainsTime') || "-") + "<hr>" +
-  //     "Крайнее обновление каталога товаров было совершено: " + 
-  //     (lpud || window['last_products_updating_day'])
-  //   );
-  // }
+  placeLastProductsUpdatingDay(lpud) {
+    this.elements.info_td.insertAdjacentHTML(
+      'beforeend', 
+      "Крайнее обновление каталога товаров было совершено: " + 
+      (lpud || window['last_products_updating_day'])
+    );
+  }
   formatSQLDate(date) {
     const spl = date.split("-");
     return spl[2] + "." + spl[1] + "." + spl[0];
@@ -1098,7 +1098,7 @@ function unpantrify(shBasket) {
 const cipher = new SecureEncryption;
 var products, g_sorted_codes, offGSorting, orderInputEventHandlingMethod, altOrderInputEventHandlingMethod,
 commasInsteadOfDots, sum, amounts, isSumLimited, limitVal, allInputs, sumCellHandling, sumCellHandler,
-localFollowings, api, products_string, pantryKey;
+localFollowings, api, products_string, pantryKey, last_products_updating_day;
 const encryptedPantryKey = 'cGO7MegatLOr30spw2rz4XO2OgEkOQqwRqR8ae/+TXWhlD83HUP5sRB4S5j4gy5TQw3v8Riet41NCo2zwKZxSLDAyYyUqMkob52rZRoTFMw=';
 const notEmptyTrColor = '#c7ffaf'; 
 const lowAmountColor = '#fc7c7c';
@@ -1109,10 +1109,11 @@ let password = localStorage.getItem('sec');
 (async () => {
   if (!password) {
     password = prompt('Пароль');
-    pantryKey = await cipher.decrypt(encryptedPantryKey, password);
-    localStorage.setItem('sec', password);
   }
+  pantryKey = await cipher.decrypt(encryptedPantryKey, password);
+  localStorage.setItem('sec', password);
   getCatalog(password).then(shBasket => {
+    last_products_updating_day = new Date(shBasket.timestamp).toLocaleString();
     products_string = unpantrify(shBasket).products
     products = ClientAPI._convertTableStringToObject2(products_string);
     delete products[""];
