@@ -1105,7 +1105,7 @@ const lowAmountColor = '#fc7c7c';
 const zeroAmountTextColor = '#adadad';
 let discount = 10;
 let search_url = 'https://kz.siberianhealth.com/ru/shop/search/?searchString=';
-let password = localStorage.getItem('sec')
+let password = localStorage.getItem('sec');
 (async () => {
   if (!password) {
     password = prompt('Пароль');
