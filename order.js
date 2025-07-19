@@ -120,9 +120,9 @@ class ClientAPI {
       price_sum: document.querySelector("#price-sum"),
       amount_sum: document.querySelector("#amount-sum"),
       info_td: document.querySelector("#info-td"),
-      authSubmit: document.querySelector("#authSubmit"),
-      loginInput: document.querySelector("#loginInput"),
-      passwordInput: document.querySelector("#passwordInput"),
+      // authSubmit: document.querySelector("#authSubmit"),
+      // loginInput: document.querySelector("#loginInput"),
+      // passwordInput: document.querySelector("#passwordInput"),
       remove_place: document.querySelector("#remove-place"),
       clear_remains: document.querySelector("#clear-remains"),
       port: document.querySelector("#port"),
@@ -131,7 +131,7 @@ class ClientAPI {
       price_head: document.querySelector("#price-head"),
       amount_head: document.querySelector("#amount-head"),
       discount_input: document.querySelector("#discount-input"),
-      botsend: document.querySelector("#botsend"),
+      // botsend: document.querySelector("#botsend"),
       toggleGSorting: document.querySelector("#toggleGSorting"),
       localClear: document.querySelector("#localClear"),
       doFunc: document.querySelector("#doFunc"),
@@ -181,19 +181,6 @@ class ClientAPI {
           if (this.elements.funcSelect.value == '0') {
             if (!confirm('Это используется в случае непредвиденных ошибок и позволяет перенести заказ в старую версию сайта. В случае если на старой версии сайта уже набит заказ, он полностью заменится. Перенести?')) return;
             this.portAmountsInOldLocalOrder.call(this);
-            return;  
-          }
-          if (this.elements.funcSelect.value == '1') {
-            if (!confirm('Это используется при нарушении работы программы и не требуется для обновления M-остатков. Стереть M-остатки из памяти?')){
-              return;
-            }
-            this.mRemains = {};
-            localStorage.removeItem('mRemains');
-            localStorage.removeItem('mRemainsLogin');
-            localStorage.removeItem('mRemainsTime');
-            this.elements.loginInput.value = '';
-            this.removeProductTrsFromOrderTable.call(this);
-            this.placeCatalogInOrderTable.call(this, discount);
             return;  
           }
           if (this.elements.funcSelect.value == '2') {
@@ -694,12 +681,6 @@ class ClientAPI {
       sumCellHandler(sum.price);
       this.elements.amount_sum.innerText = sum.amount;
     }
-    let localMRemains = localStorage.getItem('mRemains');
-    this.elements.loginInput.value = localStorage.getItem('mRemainsLogin') || '';
-    if (localMRemains !== null) {
-      this.mRemains = JSON.parse(localMRemains);
-      alert('M-остатки загружены из памяти и могут быть не актуальны.');
-    }
   }
   handleBackTrColorWhenUnfocused(tr, value) {
     if (tr !== this.focused.tr) return;
@@ -1125,84 +1106,86 @@ const zeroAmountTextColor = '#adadad';
 let discount = 10;
 let search_url = 'https://kz.siberianhealth.com/ru/shop/search/?searchString=';
 let password = localStorage.getItem('sec')
-if (!password) {
-  password = prompt('Пароль');
-  pantryKey = await cipher.decrypt(encryptedPantryKey, password);
-  localStorage.setItem('sec', password);
-}
-getCatalog(password).then(shBasket => {
-  products_string = unpantrify(shBasket).products
-  products = ClientAPI._convertTableStringToObject2(products_string);
-  delete products[""];
-  g_sorted_codes;
-  offGSorting = localStorage.getItem('order2_offGSorting');
-  if (offGSorting === null || +offGSorting !== 1) {
-    g_sorted_codes = ClientAPI.sortCodesByCoins(products);
+(async () => {
+  if (!password) {
+    password = prompt('Пароль');
+    pantryKey = await cipher.decrypt(encryptedPantryKey, password);
+    localStorage.setItem('sec', password);
   }
-  else {
-    g_sorted_codes = ClientAPI.productsToCodes(products); 
-  }
-  orderInputEventHandlingMethod;
-  altOrderInputEventHandlingMethod = localStorage.getItem('altOrderInputEventHandlingMethod');
-  if (altOrderInputEventHandlingMethod === null || +altOrderInputEventHandlingMethod !== 1) {
-    orderInputEventHandlingMethod = 'handleOrderInputEvent';
-  }
-  else {
-    orderInputEventHandlingMethod = 'handleOrderInputEventAlt';
-  }
-  commasInsteadOfDots = localStorage.getItem('commasInsteadOfDots');
-  sum = {
-    coins: 0,
-    price: 0,
-    amount: 0
-  };
-  
-  amounts = ClientAPI.initAmountsObject(products);
-  isSumLimited;
-  limitVal;
-  if (localStorage.getItem('order2_isSumLimited') == 1) {
-      isSumLimited = true;
-      limitVal = localStorage.getItem('order2_limitVal');
-  }
-  else {
-      isSumLimited = false;
-      limitVal = 'не указан';
-  }
-  allInputs = document.querySelectorAll("input");
-  sumCellHandling = {
-      simple(v) {
-          api.elements.price_sum.innerText = fi(v);
-          if (!isSumLimited) return;
-          if (limitVal - v < 0) {
-              api.elements.price_sum.style.backgroundColor = lowAmountColor;
-          }
-          else {
-              api.elements.price_sum.style.backgroundColor = '#ffffcc';
-          }
-      },
-      minus(v) {
-          api.elements.price_sum.innerText = 'Л: ' + fi(limitVal - v);
-          if (limitVal - v < 0) {
-              api.elements.price_sum.style.backgroundColor = lowAmountColor;
-          }
-          else {
-              api.elements.price_sum.style.backgroundColor = '#ffffcc';
-          }  
-      },
-  };
-  sumCellHandler;
-  if (localStorage.getItem('order2_sumCellHandlingMinusMode') == 1) {
-      sumCellHandler = sumCellHandling.minus;
-  }
-  else {
-      sumCellHandler = sumCellHandling.simple;
-  }
-  localFollowings = localStorage.getItem('followings2');
-  if (localFollowings === null) {
-  	localFollowings = "{}";
-  	localStorage.setItem('followings2', localFollowings);
-  }
-  localFollowings = JSON.parse(localFollowings);
-  api = new ClientAPI()
-  api = api.construct(products);
-})
+  getCatalog(password).then(shBasket => {
+    products_string = unpantrify(shBasket).products
+    products = ClientAPI._convertTableStringToObject2(products_string);
+    delete products[""];
+    g_sorted_codes;
+    offGSorting = localStorage.getItem('order2_offGSorting');
+    if (offGSorting === null || +offGSorting !== 1) {
+      g_sorted_codes = ClientAPI.sortCodesByCoins(products);
+    }
+    else {
+      g_sorted_codes = ClientAPI.productsToCodes(products); 
+    }
+    orderInputEventHandlingMethod;
+    altOrderInputEventHandlingMethod = localStorage.getItem('altOrderInputEventHandlingMethod');
+    if (altOrderInputEventHandlingMethod === null || +altOrderInputEventHandlingMethod !== 1) {
+      orderInputEventHandlingMethod = 'handleOrderInputEvent';
+    }
+    else {
+      orderInputEventHandlingMethod = 'handleOrderInputEventAlt';
+    }
+    commasInsteadOfDots = localStorage.getItem('commasInsteadOfDots');
+    sum = {
+      coins: 0,
+      price: 0,
+      amount: 0
+    };
+    
+    amounts = ClientAPI.initAmountsObject(products);
+    isSumLimited;
+    limitVal;
+    if (localStorage.getItem('order2_isSumLimited') == 1) {
+        isSumLimited = true;
+        limitVal = localStorage.getItem('order2_limitVal');
+    }
+    else {
+        isSumLimited = false;
+        limitVal = 'не указан';
+    }
+    allInputs = document.querySelectorAll("input");
+    sumCellHandling = {
+        simple(v) {
+            api.elements.price_sum.innerText = fi(v);
+            if (!isSumLimited) return;
+            if (limitVal - v < 0) {
+                api.elements.price_sum.style.backgroundColor = lowAmountColor;
+            }
+            else {
+                api.elements.price_sum.style.backgroundColor = '#ffffcc';
+            }
+        },
+        minus(v) {
+            api.elements.price_sum.innerText = 'Л: ' + fi(limitVal - v);
+            if (limitVal - v < 0) {
+                api.elements.price_sum.style.backgroundColor = lowAmountColor;
+            }
+            else {
+                api.elements.price_sum.style.backgroundColor = '#ffffcc';
+            }  
+        },
+    };
+    sumCellHandler;
+    if (localStorage.getItem('order2_sumCellHandlingMinusMode') == 1) {
+        sumCellHandler = sumCellHandling.minus;
+    }
+    else {
+        sumCellHandler = sumCellHandling.simple;
+    }
+    localFollowings = localStorage.getItem('followings2');
+    if (localFollowings === null) {
+    	localFollowings = "{}";
+    	localStorage.setItem('followings2', localFollowings);
+    }
+    localFollowings = JSON.parse(localFollowings);
+    api = new ClientAPI()
+    api = api.construct(products);
+  })
+}) ()
