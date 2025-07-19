@@ -1082,7 +1082,6 @@ async function getCatalog(password) {
     headers: myHeaders,
     redirect: 'follow'
   };
-  var shBasket;
   await fetch(`https://getpantry.cloud/apiv1/pantry/${pantryKey}/basket/sh`, requestOptions)
     .then(response => response.json())
     .then(result => shBasket = result)
@@ -1098,7 +1097,7 @@ function unpantrify(shBasket) {
 const cipher = new SecureEncryption;
 var products, g_sorted_codes, offGSorting, orderInputEventHandlingMethod, altOrderInputEventHandlingMethod,
 commasInsteadOfDots, sum, amounts, isSumLimited, limitVal, allInputs, sumCellHandling, sumCellHandler,
-localFollowings, api, products_string, pantryKey, last_products_updating_day;
+localFollowings, api, products_string, pantryKey, last_products_updating_day, shBasket;
 const encryptedPantryKey = 'cGO7MegatLOr30spw2rz4XO2OgEkOQqwRqR8ae/+TXWhlD83HUP5sRB4S5j4gy5TQw3v8Riet41NCo2zwKZxSLDAyYyUqMkob52rZRoTFMw=';
 const notEmptyTrColor = '#c7ffaf'; 
 const lowAmountColor = '#fc7c7c';
@@ -1113,7 +1112,7 @@ let password = localStorage.getItem('sec');
   pantryKey = await cipher.decrypt(encryptedPantryKey, password);
   localStorage.setItem('sec', password);
   getCatalog(password).then(shBasket => {
-    last_products_updating_day = new Date(shBasket.timestamp).toLocaleString();
+    last_products_updating_day = new Date(+shBasket.timestamp).toLocaleString();
     products_string = unpantrify(shBasket).products
     products = ClientAPI._convertTableStringToObject2(products_string);
     delete products[""];
